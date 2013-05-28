@@ -1,11 +1,10 @@
 
-#include <gravel/Module.h>
 
+#include <gravel/Module.h>
 #include <gravel/private/Module.h>
+#include <gravel/Context.h>
 
 #include <cassert>
-
-#include "gravel/Context.h"
 #include <sstream>
 #include <set>
 
@@ -31,7 +30,7 @@ Gravel::ModuleNotFound::~ModuleNotFound()  throw() {
     
 }
 
-
+ 
 
    Gravel::Module::Module(){
        
@@ -106,6 +105,27 @@ Gravel::ModuleNotFound::~ModuleNotFound()  throw() {
       
   
         os  << "(" << FormattedList<Comma>(si.first, si.second) << FormattedList<Comma>(so.first, so.second) << ");" << "\n";
+      
+        Gravel::ConstSymbolMapIterator it;
+        
+        for (it = si.first ; it != si.second ; it++) {
+            Gravel::SymbolDeclaration decl(it->second);
+            os << decl << "\n";
+      
+        }
+        
+        for (it = so.first ; it != so.second ; it++) {
+            Gravel::SymbolDeclaration decl(it->second);
+            os << decl << "\n";
+        }
+        Gravel::ConstExpressionList el = ctx->getExpressions(*this);
+
+        Gravel::ConstExpressionList::iterator elit;
+        
+        for (elit = el.begin() ; elit != el.end() ; elit++) {
+            Gravel::Expression expression = *elit;
+            os << expression << "\n";
+        }
         
        os << "endmodule" << "\n";
        return os;
@@ -123,7 +143,7 @@ Gravel::ModuleNotFound::~ModuleNotFound()  throw() {
        if (!context->exists(*this)) { 
         context->insert(*this);
        }
-       context->insert(*this, gs, Gravel::SymbolInterface::Output);
+       context->insert(*this, gs, Gravel::Interface::Symbol::Output);
        
    }
    void Gravel::Module::operator<<(Symbol& gs){
@@ -132,7 +152,7 @@ Gravel::ModuleNotFound::~ModuleNotFound()  throw() {
        if (!context->exists(*this)) { 
         context->insert(*this);
        }
-         context->insert(*this, gs, Gravel::SymbolInterface::Input);
+         context->insert(*this, gs, Gravel::Interface::Symbol::Input);
    }
    
    bool Gravel::Module::operator<(const Module & rhs) const {
@@ -145,10 +165,30 @@ Gravel::ModuleNotFound::~ModuleNotFound()  throw() {
     
    }
    
+   bool Gravel::Module::operator!=(const Module & m) const {
+        if (m.module == module) {
+            return false;
+        }
+        return true;
+   }
+   
+   bool Gravel::Module::operator==(const Module & m) const {
+       if (m.module == module) { 
+           return true;
+       }
+       return false;
+   }
+   
    
    /*
     Module Implementation
     */
+   
+   Gravel::ModuleInstantiation::ModuleInstantiation(const std::string& name, const Gravel::Module module, const InputMap inputs) : 
+   name(name), module(module), inputs(inputs) { 
+       
+   }
+   
    
   
    Gravel::ModuleImplementation::ModuleImplementation() { 

@@ -10,7 +10,6 @@
 
 #include <gravel/Object.h>
 
-#include <gravel/Module.h>
 #include <gravel/Symbol.h>
 
 #include "private/Symbol.h"
@@ -20,6 +19,7 @@
 #include <iterator>
 namespace Gravel {
 
+    
 class ModuleImplementation;
     
 class ModuleInterface { 
@@ -32,22 +32,39 @@ typedef boost::shared_ptr<ModuleImplementation> ModulePtr;
 
 class Module : public Gravel::ModuleInterface {
 
-    typedef std::vector<Gravel::SymbolImplementation> SymbolList;
+    typedef std::vector<Gravel::Implementation::Symbol> SymbolList;
 
 protected :  
     Module();
     ModulePtr module;
 public : 
+  ;
+    
+    
     Module(const std::string& name);
     const std::string getName() const;
     std::ostream& emit(std::ostream& os) const;
    // SymbolList getSymbols(Gravel::Symbol::Direction);
+    bool operator==(const Module & ) const;
     void operator>>(Gravel::Symbol& gs);
     void operator<<(Gravel::Symbol& gs);
     bool operator<(const Module &) const;
-    
+    bool operator!=(const Module &) const;
 };
 
+
+ class ModuleInstantiation { 
+    public:
+        typedef std::map<Gravel::Symbol, Gravel::Symbol> InputMap;
+        ModuleInstantiation(const std::string&, const Gravel::Module, const InputMap);
+    private:
+        const std::string name;
+        const Gravel::Module module;
+        const InputMap inputs;
+    };
+
+ 
+    
 class ModuleNotFound : public std::exception { 
 public:
     ModuleNotFound(std::string = "");
@@ -66,9 +83,9 @@ struct MixedSeparatorException : public std::exception {};
    template <class T>
    class Separator_Traits {
        public : 
-       static const std::string Separator()  { 
-           return " ";
-       }
+       //static const std::string Separator()  { 
+       //    return " ";
+       //}
    };
    
    template<>
@@ -87,23 +104,23 @@ struct MixedSeparatorException : public std::exception {};
            }
    };
    
-   template < class T, class S > 
+   template < class Sep, class It > 
    class FormattedListObj { 
    public:
-       typedef Separator_Traits<S> Traits;
-       FormattedListObj(T be, T en) : be(be), en(en) {}
+       typedef Separator_Traits<Sep> Traits;
+       FormattedListObj(It be, It en) : be(be), en(en) {}
            
            static const std::string getSeparator() { 
                return Traits::Separator();
            }
-           T be;
-           T en;
+           It be;
+           It en;
        
    };
    
-   template <class S, class T>
-   FormattedListObj<T,S> FormattedList(T bs, T be) {
-       return FormattedListObj<T,S>(bs, be);
+   template <class Sep, class It>
+   FormattedListObj<Sep,It> FormattedList(It bs, It be) {
+       return FormattedListObj<Sep,It>(bs, be);
    }
 
 
@@ -136,9 +153,11 @@ struct MixedSeparatorException : public std::exception {};
               
               for (it = fv.be ; it != fv.en ; it++) {
                   
-                  if (!fs.empty) {
+                  if (fs.empty == false) {
                       fs << fs.getSeparator();
                   } 
+                  
+               
                   fs.empty = false;
  
                   fs << it->second;
@@ -183,6 +202,7 @@ struct MixedSeparatorException : public std::exception {};
            
        } catch(std::bad_cast& ) { 
                fs  = new FormattedStream<T, S, typename std::ostream::char_type>(sink);
+               FormattedStream<T,S,typename std::ostream::char_type>::emit(*fs,fv);
        }
        
        return *fs;

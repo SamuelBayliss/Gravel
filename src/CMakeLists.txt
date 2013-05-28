@@ -1,6 +1,6 @@
 
 
-set (GRAVEL_SRC Context Module Object Symbol)
+set (GRAVEL_SRC Context Module Object Symbol Expression Actor)
 set (CODEGEN_SRC codegen/Generator
         codegen/Definitions
         codegen/SequentialModule

@@ -12,17 +12,36 @@
 
 namespace Gravel { 
     
-class SymbolImplementation : public Gravel::Actor { 
-    
+    namespace Implementation { 
+   class Symbol : public Gravel::Actor {         
 private:
     std::string name;
     
 protected:
-    SymbolImplementation();
+    Symbol();
+    
 public:
-    SymbolImplementation(const std::string&);
+    Symbol(const std::string&);
      const std::string getName() const;
+     Gravel::Interface::Symbol::Type getType() const;
+    
 };
+
+class Constant : public Gravel::Actor { 
+
+private : 
+    unsigned value;
+public:
+    
+    
+};
+
+    };
+    
+
+
+
+
 
 
 };
