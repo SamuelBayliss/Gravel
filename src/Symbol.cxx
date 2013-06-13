@@ -1,20 +1,47 @@
 
 #include <gravel/Symbol.h>
-#include <gravel/private/Symbol.h>
+//#include <gravel/private/Symbol.h>
 
 
 
-#include "gravel/Expression.h"
+#include <gravel/Expression.h>
+#include <gravel/private/Expression.h>
+#include <gravel/Context.h>
 
-#include "gravel/private/Expression.h"
-#include "gravel/Context.h"
+#include <gravel/Assignment.h>
 
  Gravel::Symbol::Symbol() {
      
  }
 
- Gravel::Symbol::Symbol(const std::string& name_) : symbol(new Gravel::Implementation::Symbol(name_)) {
+ Gravel::Symbol::~Symbol() { 
+
      
+     Gravel::Context * ctx = Gravel::Context::getInstance();
+     
+     if (!ctx->isOwned(symbol)) { 
+       std::cout << "Orphan Symbol (" << getName() << ") was destroyed" << std::endl;
+     }
+     
+}
+ 
+ void Gravel::Symbol::attach(const Gravel::Pointer::Module& module) const { 
+     // dynamic cast to a symbol
+     // attach to context
+     Gravel::Context * ctx = Gravel::Context::getInstance();
+     ctx->insert(symbol, module);
+     
+     
+ }
+ 
+Gravel::Module Gravel::Symbol::getOwner() const {
+      Gravel::Context * ctx = Gravel::Context::getInstance();
+     // std::cout << "Finding owner for " << symbol->getName() << "\n";
+      return ctx->owner(symbol);
+ }
+ 
+ Gravel::Symbol::Symbol(const std::string& name_) : symbol(new Gravel::Implementation::Symbol(name_)) {
+     symbol->initialize(symbol);
  }
     const std::string Gravel::Symbol::getName() const {
         return symbol->getName();
@@ -25,39 +52,78 @@
         return symbol->getType();
     }
     
- Gravel::Implementation::Symbol::Symbol(const std::string& name_) : name(name_) { 
+ Gravel::Implementation::Symbol::Symbol(const std::string& name_) : name(name_) {
      
+    
+      Gravel::Pointer::GraphNode inode = Gravel::GraphNode::Create(nodes, Gravel::Input);
+      Gravel::Pointer::GraphNode onode = Gravel::GraphNode::Create(nodes, Gravel::Output);
  }
+ 
+ Gravel::Implementation::Constant::Constant(int i) : value(i) {
+        Gravel::Pointer::GraphNode onode = Gravel::GraphNode::Create(nodes, Gravel::Output);
+ }
+ 
+  Gravel::Pointer::GraphNode Gravel::Implementation::Constant::getOutput() const {
+     Gravel::GraphNode::ConstNodeIterator cni = this->nodes.find(Gravel::Output);
+     
+     if (cni == nodes.end()) {
+         throw Gravel::Exception::GraphNodeNotFound();
+     }
+     
+     return cni->second;
+  }
+
+  Gravel::GraphNode::ConstNodeRange Gravel::Implementation::Constant::getInputs() const {
+      // return empty set
+      return Gravel::GraphNode::ConstNodeRange(nodes.end(), nodes.end());
+  }
  
 Gravel::TemporarySymbol::TemporarySymbol() : Gravel::Symbol(Context::getInstance()->getUniqueIdentifier()) {
         
 }
  
-  Gravel::Symbol::Symbol(boost::weak_ptr<Gravel::GraphNode> graphNode )  {
+// Make t
+
+Gravel::Pointer::Symbol FindSymbol(Gravel::Pointer::Actor actor) {
+     Gravel::Pointer::Symbol symbol = boost::dynamic_pointer_cast<Gravel::Implementation::Symbol>(actor);        
+     Gravel::Pointer::Expression expression = boost::dynamic_pointer_cast<Gravel::Implementation::Expression>(actor);
+     
+     if (!symbol) {
+     
+         if (expression) {
+            symbol = expression->getSymbol();
+        } else { 
+             Gravel::Pointer::Constant constant = boost::dynamic_pointer_cast<Gravel::Implementation::Constant>(actor);
+            
+             Gravel::Pointer::GraphNode onode = constant->getOutput();
+             Gravel::GraphNode::BackMapRange range = Gravel::GraphNode::getConnections(onode);
+             
+             Gravel::GraphNode::BackMapIterator bit;
+             
+             for (bit = range.first ; bit != range.second ; bit++ ) {
+                 
+                 Gravel::WeakPointer::GraphNode wgn = bit->second;
+                 
+                 Gravel::Pointer::GraphNode gn = wgn.lock();
+                 
+                 actor = Gravel::GraphNode::getParent(gn);
+                 symbol = FindSymbol(actor);
+             }
+             
+             
+             
+        }
+     }
+     if (!symbol) throw Gravel::SymbolNotFoundException();
+   
+     return symbol;
+}
+
+ Gravel::Symbol::Symbol(Gravel::Pointer::Actor actor)  {
       // find graph node connections
+     
+ 
       
-      Gravel::GraphNode::BackMapRange nr = GraphNode::getConnections(graphNode);
-      
-      Gravel::GraphNode::BackMapIterator ci;
-      
-      
-      bool found = false;
-      
-      for(ci = nr.first ; ci != nr.second ; ci++ ) {
-          
-         Gravel::Pointer::Actor actor = GraphNode::getParent(ci->second);
-          
-          Gravel::Implementation::TermExpression * te = dynamic_cast< Gravel::Implementation::TermExpression * >(actor.get());
-          if(te) {
-              symbol = te->getSymbol().symbol;
-              found = true;
-              break;
-          }
-      }
-      
-      if (!found) {
-          throw SymbolNotFoundException();
-      }
       
       // find out the parent of each connected graph node and try and cast to a term expression
       
@@ -89,9 +155,20 @@ bool Gravel::Symbol::operator==(const Gravel::Symbol& sm) const {
 */
  Gravel::SymbolDeclaration::SymbolDeclaration(const Gravel::Symbol& symbol) : symbol(symbol) {
     Gravel::Context * ctx = Gravel::Context::getInstance();
-     assert(ctx->isOwned(symbol));
+    assert (Symbol::Owned(symbol));
      
  }
+
+ bool Gravel::Symbol::Owned(const Gravel::Symbol& symbol) {
+      Gravel::Context * ctx = Gravel::Context::getInstance();
+      return ctx->isOwned(symbol.symbol);
+  }
+ 
+
+void Gravel::Symbol::attach(Gravel::Pointer::Module& module, const Gravel::Interface::Symbol::Direction& direction) const {
+            Gravel::Context * ctx = Gravel::Context::getInstance();
+            ctx->insert(module, symbol, direction);
+}
 
 std::ostream& Gravel::operator<< (std::ostream& os, const Gravel::Symbol& s) {
     os << s.getName();
@@ -100,7 +177,10 @@ std::ostream& Gravel::operator<< (std::ostream& os, const Gravel::Symbol& s) {
 
 unsigned Gravel::Symbol::getSymbolWidth(const Gravel::Symbol& sym) { 
      Gravel::Context * ctx = Gravel::Context::getInstance();
-     return (rand() % 16);
+   
+     Gravel::Pointer::GraphNode node = sym.getOutput();
+
+     return node->getWidth();
 
 }
     const Gravel::Symbol Gravel::SymbolDeclaration::getSymbol() const {
@@ -108,15 +188,19 @@ unsigned Gravel::Symbol::getSymbolWidth(const Gravel::Symbol& sym) {
     }
 
     
-    void Gravel::Symbol::setWidth(Gravel::GraphNode::NodePtr, unsigned) { 
+    void Gravel::Symbol::setWidth(Gravel::Pointer::GraphNode, unsigned) { 
         
     }
     
-    Gravel::GraphNode::NodePtr Gravel::Symbol::getOutput() const {
+    void Gravel::Implementation::Constant::setWidth(Gravel::Pointer::GraphNode, unsigned int) {
         
     }
+    
+    Gravel::Pointer::GraphNode Gravel::Symbol::getOutput() const {
+        return symbol->getOutput();
+    }
     Gravel::GraphNode::ConstNodeRange Gravel::Symbol::getInputs() const {
-        
+        return symbol->getInputs();
     }
     
     
@@ -150,21 +234,30 @@ std::ostream& Gravel::operator<< (std::ostream& os, const Gravel::SymbolDeclarat
    return os;
 }
 
-Gravel::Symbol Gravel::Symbol::operator=(const Gravel::Expression& rhs) {
+Gravel::Assignment Gravel::Symbol::operator=(const Gravel::Expression& rhs) {
     // assign rhs correctly
+    Gravel::Symbol lhs = *this;
     
+    Gravel::Assignment a = Gravel::Assignment::Create(lhs, rhs, 0);
     
-    return *this;
+    return a;
 }
 
    bool Gravel::Symbol::operator<(const Gravel::Symbol& s) const {
        return s.symbol.get() < symbol.get();
    }
 
- Gravel::Symbol::operator Gravel::Expression() { 
+ Gravel::Symbol::operator const Gravel::Expression() const { 
      // make a concrete termExpression wrapped in a shared ptr
      // build an Expression from that shared pointer
-     Gravel::Pointer::Expression ptr(new Gravel::Implementation::TermExpression(*this));
+     Gravel::Pointer::Expression ptr(new Gravel::Implementation::TermExpression(this->symbol));
+     
+     ptr->initialize(ptr);
+     
      return Gravel::Expression(ptr);
      
  }
+ 
+  Gravel::Symbol::Symbol(Gravel::Pointer::Symbol symbol ) : symbol(symbol) {
+      
+  }

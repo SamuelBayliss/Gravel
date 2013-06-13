@@ -18,30 +18,38 @@
     */
 
 
-Gravel::ModuleNotFound::ModuleNotFound(std::string _name) : name(_name) {};
+Gravel::Exception::ModuleNotFound::ModuleNotFound(std::string _name) : name(_name) {};
 
-const char * Gravel::ModuleNotFound::what() const throw() { 
+const char * Gravel::Exception::ModuleNotFound::what() const throw() { 
     std::stringstream ss;
     ss << "Module (\"" << name << "\") Not Found ";
     return ss.str().c_str();
 }
 
-Gravel::ModuleNotFound::~ModuleNotFound()  throw() { 
+Gravel::Exception::ModuleNotFound::~ModuleNotFound()  throw() { 
     
 }
 
- 
+ /*  Gravel::Module::Module(){
+       
+   }
+   */
 
-   Gravel::Module::Module(){
-       
-   }
-   
-   Gravel::Module::Module(const std::string& name) : module(ModulePtr(new ModuleImplementation(name))) { 
+  
+   Gravel::Module::Module(const std::string& name) : module(Pointer::Module(new ModuleImplementation(name))) { 
     
+      
+       
        
    }
   
-  
+/*     Gravel::Module::Module(const Module & m) : module(m.module) {
+        
+    }
+  */ 
+     Gravel::Module::Module(Pointer::Module m ) : module(m) { 
+      
+     }
   
  /*  template<class T>
    class FormattedBuffer : public std::streambuf, SeparatorInterface {
@@ -97,62 +105,71 @@ Gravel::ModuleNotFound::~ModuleNotFound()  throw() {
    //operator<<()
    
    std::ostream& Gravel::Module::emit(std::ostream& os) const {
+    
+
        os << "module " << this->getName();
        Gravel::Context * ctx = Gravel::Context::getInstance();
+
        
-       Gravel::ConstSymbolRange si = ctx->getSymbols(*this, Gravel::Symbol::Input);
-       Gravel::ConstSymbolRange so = ctx->getSymbols(*this, Gravel::Symbol::Output);
+       Gravel::SymbolSet si = ctx->getSymbols(module, Gravel::Symbol::Input);
+       Gravel::SymbolSet so = ctx->getSymbols(module, Gravel::Symbol::Output);
       
   
-        os  << "(" << FormattedList<Comma>(si.first, si.second) << FormattedList<Comma>(so.first, so.second) << ");" << "\n";
+        os  << "(" << FormattedList<Comma>(si.begin(), si.end()) << FormattedList<Comma>(so.begin(), so.end()) << ");" << "\n";
       
-        Gravel::ConstSymbolMapIterator it;
+        Gravel::SymbolSet::iterator it;
         
-        for (it = si.first ; it != si.second ; it++) {
-            Gravel::SymbolDeclaration decl(it->second);
+        for (it = si.begin() ; it != si.end() ; it++) {
+            Gravel::SymbolDeclaration decl(*it);
             os << decl << "\n";
       
         }
         
-        for (it = so.first ; it != so.second ; it++) {
-            Gravel::SymbolDeclaration decl(it->second);
+        for (it = so.begin() ; it != so.end() ; it++) {
+            Gravel::SymbolDeclaration decl(*it);
             os << decl << "\n";
         }
-        Gravel::ConstExpressionList el = ctx->getExpressions(*this);
+        Gravel::AssignmentSet el = ctx->getAssignments(module);
 
-        Gravel::ConstExpressionList::iterator elit;
-        
+        Gravel::AssignmentSet::iterator elit;
+
         for (elit = el.begin() ; elit != el.end() ; elit++) {
-            Gravel::Expression expression = *elit;
-            os << expression << "\n";
+            Gravel::Assignment assignment = *elit;
+            assignment.emit(os);
         }
         
        os << "endmodule" << "\n";
        return os;
+       
    }
+   
+    
+   
+   
    
    const std::string Gravel::Module::getName() const { 
        return module->getName();
    }
    
-   void Gravel::Module::operator>>(Symbol& gs) {
+   void Gravel::Module::operator>>(Symbol& symbol) {
        
           // lookup context
        Gravel::Context * context = Gravel::Context::getInstance();
        // register a copy of the shared_ptr 
-       if (!context->exists(*this)) { 
-        context->insert(*this);
+       if (!context->exists(module)) { 
+        context->insert(module);
        }
-       context->insert(*this, gs, Gravel::Interface::Symbol::Output);
-       
+       symbol.attach(module, Gravel::Interface::Symbol::Output); 
    }
-   void Gravel::Module::operator<<(Symbol& gs){
+   
+   
+   void Gravel::Module::operator<<(Symbol& symbol){
        Gravel::Context * context = Gravel::Context::getInstance();
        // register a copy of the shared_ptr 
-       if (!context->exists(*this)) { 
-        context->insert(*this);
+       if (!context->exists(module)) { 
+        context->insert(module);
        }
-         context->insert(*this, gs, Gravel::Interface::Symbol::Input);
+       symbol.attach(module, Gravel::Interface::Symbol::Input);
    }
    
    bool Gravel::Module::operator<(const Module & rhs) const {
@@ -163,6 +180,13 @@ Gravel::ModuleNotFound::~ModuleNotFound()  throw() {
     }
     return false;
     
+   }
+   
+   bool Gravel::ModuleImplementation::operator<(const ModuleImplementation & rhs) const {
+    if (getName() < rhs.getName()) { 
+        return true;
+    } 
+    return false;
    }
    
    bool Gravel::Module::operator!=(const Module & m) const {
@@ -179,27 +203,35 @@ Gravel::ModuleNotFound::~ModuleNotFound()  throw() {
        return false;
    }
    
-   
+  /* Gravel::Module & Gravel::Module::operator=(const Gravel::Module & rhs) {
+       if (this = &rhs) {
+           return *this;
+       }
+       module = rhs.module;
+       return *this;
+   }
+   */
    /*
     Module Implementation
     */
    
-   Gravel::ModuleInstantiation::ModuleInstantiation(const std::string& name, const Gravel::Module module, const InputMap inputs) : 
-   name(name), module(module), inputs(inputs) { 
+   Gravel::InstantiatedModule::InstantiatedModule(const std::string& name, const Gravel::Module module, const SymbolMap connections) : 
+   name(name), module(module), connections(connections) { 
        
    }
    
-   
-  
+ 
    Gravel::ModuleImplementation::ModuleImplementation() { 
      assert(false);  
    }
  
    Gravel::ModuleImplementation::ModuleImplementation(const std::string& name_) : name(name_) { 
-     
+       
+    
+       
    }
    
-     const std::string Gravel::ModuleImplementation::getName() { 
+     const std::string Gravel::ModuleImplementation::getName() const { 
        return name;
    }
    

@@ -12,6 +12,8 @@
 
 #include <sstream>
 
+#include <boost/scoped_ptr.hpp>
+
 namespace PG =  Potholes::Generator;
 
 
@@ -29,18 +31,22 @@ PG::Generator::Generator(std::string openscop): input_file(openscop), state(boos
     }
     osl_scop_p scop = osl_scop_read(openscop_file);
     
-   input = boost::shared_ptr<CloogInput>(cloog_input_from_osl_scop(state.get(), scop));
-    
+  // input = boost::shared_ptr<CloogInput>(cloog_input_from_osl_scop(state.get(), scop));
+    input = cloog_input_from_osl_scop(state.get(), scop);
 }
 
 void PG::Generator::generate(Target_t target) {
     options = boost::shared_ptr<CloogOptions>(cloog_options_malloc(state.get()));
     
-     root = boost::shared_ptr<clast_stmt>(cloog_clast_create_from_input(input.get(), options.get()));
+     root = boost::shared_ptr<clast_stmt>(cloog_clast_create_from_input(input, options.get()));
     
     switch (target) {
         case PG::Verilog : {
+          
           register_modules();
+          register_symbols();
+          build_chains();
+          
         } break;
         default : { 
           
@@ -49,10 +55,10 @@ void PG::Generator::generate(Target_t target) {
    
 }
 
-void PG::Generator::emit(Target_t target) { 
+void PG::Generator::emit(Target_t target, std::ostream& os) { 
      switch (target) {
      case PG::Verilog : {
-         Gravel::Context::getInstance()->emit(std::cout);
+         Gravel::Context::getInstance()->emit(os);
      } break;
      case PG::C : { 
        
@@ -110,7 +116,18 @@ template <class T>
 class identify_for_nodes {
     public : 
         void operator()(clast_stmt * node, T& usr) {
-    
+          
+}
+
+};
+
+template <>
+class identify_for_nodes<Potholes::Generator::Generator::StatementSet> {
+    public : 
+        void operator()(clast_stmt * node, Potholes::Generator::Generator::StatementSet& ss) {
+            if (PG::find_type(node) == PG::stmt_for_t) {
+             ss.insert(node);   
+            }
 }
 
 };
@@ -123,11 +140,31 @@ class identify_guard_nodes {
         }
 };
 
+template <>
+class identify_guard_nodes<Potholes::Generator::Generator::StatementSet>  {
+    public:
+        void operator()(clast_stmt * node, Potholes::Generator::Generator::StatementSet& ss) const { 
+      if (PG::find_type(node) == PG::stmt_guard_t) {
+                    ss.insert(node);   
+            }
+        }
+};
+
 template <class T>
-class identify_assignment_nodes {
+class identify_assignment_nodes{
 public : 
     void operator()(clast_stmt * node, T& usr) { 
     
+        }
+};
+
+template <>
+class identify_assignment_nodes<Potholes::Generator::Generator::StatementSet>{
+public : 
+    void operator()(clast_stmt * node, Potholes::Generator::Generator::StatementSet& ss) { 
+      if (PG::find_type(node) == PG::stmt_ass_t) {
+          ss.insert(node);
+            }
         }
 };
     
@@ -209,17 +246,29 @@ void PG::Generator::create_and_append_nodes(StatementSet ss, ModuleSet& ms) {
     
     StatementSet::iterator ssit;
     
+    Gravel::Context * ctx = Gravel::Context::getInstance();
+    
     for(ssit = ss.begin() ; ssit != ss.end() ; ssit++ ) {
+    
           Potholes::Generator::clast_stmt_type type = PG::find_type(*ssit);
           switch(type) {
               case PG::stmt_for_t : {
-                     modules.insert(boost::shared_ptr<PG::ForModule>(new PG::ForModule(*ssit)));
+                  Gravel::Pointer::Module mp = Gravel::Pointer::Module(new PG::ForModule(*ssit));
+                    Gravel::Module m = Gravel::Module(mp);
+                    ctx->insert(mp);
+                  ///  modules.insert(m);
               } break;
               case PG::stmt_guard_t : { 
-                     modules.insert(boost::shared_ptr<PG::GuardModule>(new PG::GuardModule(*ssit)));
+                  Gravel::Pointer::Module mp = Gravel::Pointer::Module(new PG::GuardModule(*ssit));
+                    Gravel::Module m = Gravel::Module(mp);
+                      ctx->insert(mp);
+                    // modules.insert(Gravel::Module(mp));
               } break;
                case PG::stmt_ass_t : { 
-                     modules.insert(boost::shared_ptr<PG::AssModule>(new PG::AssModule(*ssit)));
+                   Gravel::Pointer::Module mp = Gravel::Pointer::Module(new PG::AssModule(*ssit));
+                     Gravel::Module m = Gravel::Module(mp);
+                       ctx->insert(mp);
+                   //  modules.insert(Gravel::Module(mp));
               } break;
               
           }
@@ -245,16 +294,20 @@ std::string Potholes::Generator::create_unique_module_name(clast_stmt * stmt) {
       switch(type) {
               case PG::stmt_for_t : {
                   ss << "For_";
+                  clast_for * for_stmt = (clast_for *)(stmt);
+                  ss << for_stmt->iterator;   
               } break;
               case PG::stmt_guard_t : { 
                   ss << "Guard_";
+                  ss << stmt ;
               } break;
                case PG::stmt_ass_t : { 
                   ss << "Ass_";
+                  ss << stmt ;
               } break;
               
           }
-      ss << stmt ;
+  
       
       return ss.str();
 }
@@ -275,8 +328,8 @@ void PG::Generator::create_and_append_nodes(EdgeSet edges, ModuleSet & modules )
         clast_stmt * start_node = find_start_node(*(sosit), edge_set);
         
         // create SeqModule initiated with this clast_stmt * 
-        
-        modules.insert(boost::shared_ptr<PG::SequentialModule>(new PG::SequentialModule(start_node)));
+        Gravel::Pointer::Module mp = Gravel::Pointer::Module(new PG::SequentialModule(start_node));
+        modules.insert(Gravel::Module(mp));
         
     }
 }
@@ -285,7 +338,13 @@ void PG::Generator::connect_edges(PG::Generator::EdgeSet es, PG::Generator::Modu
   
     /* every modules should have exactly one parent */
     
-    /* every module (except SEQ modules) should have exactly one child */
+    // go through modules
+    // if module is in the seq_set, it's parent is a seq module, 
+    // go through seq modules, if next chain leads to module statement then the parent of this module is that seq module
+    
+    // otherwise, the parent is taken from the edge set.
+    
+    // every parent calls register_child on it's parent module
     
 }
 
@@ -569,14 +628,84 @@ void PG::Generator::register_modules() {
     walk_nodes<StatementSet, identify_for_nodes<StatementSet> >(root.get(), identify_for_nodes<StatementSet>(), for_nodes);
     walk_nodes<StatementSet, identify_assignment_nodes<StatementSet> >(root.get(), identify_assignment_nodes<StatementSet>(), assignment_nodes);
    
+    
+    
     create_and_append_nodes(guard_nodes, modules);
-    create_and_append_nodes(for_nodes, modules);
+    create_and_append_nodes(for_nodes,  modules);
     create_and_append_nodes(assignment_nodes, modules);
     create_and_append_nodes(seq_edges, modules);
     
     connect_edges(all_edges, modules);
     
 }
+
+     void PG::Generator::register_symbols() {
+         
+         Gravel::Context * ctx = Gravel::Context::getInstance();
+         
+        Gravel::ModuleSet cml = ctx->getModules();
+        Gravel::ModuleSet::iterator cmlit;
+        for (cmlit = cml.begin() ; cmlit != cml.end() ; cmlit++ ) {
+            //Gravel::Pointer::Module ptr = cmlit->getPointer();
+            
+            Potholes::Generator::CodegenModulePtr cgptr = boost::dynamic_pointer_cast<Potholes::Generator::Module>(*cmlit);
+            
+            if ( cgptr != Potholes::Generator::CodegenModulePtr() ) {
+                cgptr->register_symbols();
+            }
+            
+        }
+         
+     }
+     
+     
+     void PG::Generator::gather_iterator_edges() {
+            
+                   
+        }
+     
+     
+        void PG::Generator::register_iterator_edge_symbols() {
+           
+        }
+        
+        void PG::Generator::gather_control_edges() {
+            
+            
+            
+        }
+        void PG::Generator::insert_control_edge_symbols() {
+            
+        }
+     
+     void PG::Generator::build_chains() {
+               
+         Gravel::Module top("top");
+       /* Automatically Registered */
+         Gravel::Context * ctx = Gravel::Context::getInstance();
+         
+         
+         
+       
+        Gravel::Symbol clk("clk");
+        top << clk;
+        Gravel::Symbol reset("reset");
+        top  << reset;
+         
+        /* create symbols to link together modules at top level */
+        
+        gather_iterator_edges();
+        register_iterator_edge_symbols();
+        
+       /* create symbols to link together modules at top level */
+        
+        gather_control_edges();
+        insert_control_edge_symbols();
+        
+     }
+
+     
+     
 
   /*  std::cerr << "Seq edges has " << seq_edges.size() << " edges" << std::endl;
     std::cerr << "For Nodes has " << for_nodes.size() << " nodes" << std::endl;

@@ -8,28 +8,44 @@
 #ifndef SYMBOL_H
 #define	SYMBOL_H
 
-#include <gravel/Object.h>
-
-
 #include <map>
+#include <set>
 
-#include "private/Actor.h"
+#include <boost/shared_ptr.hpp>
+
+
+
 namespace Gravel { 
     
     class Expression;
     class TermExpression;
     class BinaryExpression;
-    
     class Module;
+    class Assignment;
+    class Symbol;
    
-    namespace Pointer{
-        
-    }
     
     namespace Implementation {
         class Symbol;
         class Constant;
-    }
+    };
+
+     namespace Pointer{
+        typedef boost::shared_ptr<Gravel::Implementation::Symbol> Symbol;
+        typedef boost::shared_ptr<Gravel::Implementation::Constant> Constant;
+    };
+    
+     namespace Collection { 
+        typedef std::set<Gravel::Pointer::Symbol> Symbol;
+    };
+    
+    
+};
+
+    #include <gravel/private/Actor.h>
+    #include <gravel/Assignment.h>
+
+namespace Gravel { 
 
     namespace Interface { 
         class Symbol : public virtual Gravel::Interface::Actor { 
@@ -43,48 +59,82 @@ namespace Gravel {
         protected:
             
         };
+        
+    
+        
     };
     
+     
+  
+     
     
-    
-    typedef boost::shared_ptr<Gravel::Implementation::Symbol> SymbolPtr;
-    
-  class Constant  {
-      
+
+
+
+namespace Implementation { 
+  class Constant : public virtual Gravel::Actor {
+  public:
+      Constant(int);
+         Gravel::Pointer::GraphNode getOutput() const;
+         GraphNode::ConstNodeRange getInputs() const;
+      // set width
+         void setWidth(Gravel::Pointer::GraphNode, unsigned);
+  protected:
+      int value;
   };
+  
+};
   
   class SymbolNotFoundException : std::exception { 
       
   };
   
+
   
-  
-    class Symbol : public Interface::Symbol { 
+    class Symbol : public Interface::Symbol, public Interface::ActorHandle { 
     private : 
-        SymbolPtr symbol;
+        Gravel::Pointer::Symbol symbol;
     protected : 
         Symbol();
         
       
     public : 
        Symbol(const std::string&);
-        Symbol(boost::weak_ptr<Gravel::GraphNode>);
+        Symbol(Gravel::Pointer::Actor);
+        Symbol(Gravel::Pointer::Symbol);
+        ~Symbol();
        const std::string getName() const;
          Interface::Symbol::Type getType() const;
+           static boost::shared_ptr<Gravel::Symbol> Create(const std::string&);
+           
        static unsigned getSymbolWidth(const Gravel::Symbol&);
+       
+       static bool Owned(const Gravel::Symbol&);    
+       
+       //static void Attach(const Gravel::Symbol&, const Gravel::Module&, const Gravel::Interface::Symbol::Direction&); 
+   
+       void attach(const Gravel::Pointer::Module&) const;
+       void attach(Gravel::Pointer::Module&, const Gravel::Interface::Symbol::Direction&) const ;
+       Gravel::Module getOwner() const;
+       
        bool operator==(const Gravel::Symbol&) const;
-        operator Gravel::Expression();
+        operator const Gravel::Expression() const;
   
-         GraphNode::NodePtr getOutput() const;
+         Gravel::Pointer::GraphNode getOutput() const;
         GraphNode::ConstNodeRange getInputs() const;
-        void setWidth(Gravel::GraphNode::NodePtr, unsigned);
+        void setWidth(Gravel::Pointer::GraphNode, unsigned);
         
-       Gravel::Symbol operator=(const Gravel::Expression&);
+       Gravel::Assignment operator=(const Gravel::Expression&);
        bool operator<(const Gravel::Symbol&) const;
        
-       
+       friend Gravel::Assignment Assignment::Create(const Gravel::Symbol&, const Gravel::Expression&, unsigned delay);
     };
  
+   class RegisteredSymbol : public Gravel::Symbol {
+ 
+    };
+
+    
     class TemporarySymbol : public Gravel::Symbol { 
     public:
         TemporarySymbol();
@@ -101,15 +151,20 @@ namespace Gravel {
         
     };
     
-    typedef std::pair<Gravel::Module, Gravel::Symbol::Direction> SymbolKey;
-    typedef std::multimap<SymbolKey, Gravel::Symbol> SymbolMap;
-    typedef std::multimap<SymbolKey, Gravel::Symbol>::const_iterator ConstSymbolMapIterator;
+    typedef std::pair<Gravel::Pointer::Module, Gravel::Pointer::Symbol> SymbolKey;
+    typedef std::multimap<SymbolKey, Gravel::Symbol::Direction> SymbolMap;
+
+    
+    typedef std::set<Gravel::Symbol> SymbolSet;
+ 
+    typedef SymbolMap::const_iterator ConstSymbolMapIterator;
     std::ostream& operator<< (std::ostream& os, const Gravel::Symbol& s);
     std::ostream& operator<< (std::ostream& os, const Gravel::SymbolDeclaration& s);
     
     
     
 };
+
 
 #endif	/* SYMBOL_H */
 

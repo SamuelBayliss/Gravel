@@ -1,13 +1,14 @@
 
 
-set (GRAVEL_SRC Context Module Object Symbol Expression Actor)
+set (GRAVEL_SRC Context Module Object Symbol Expression Actor StateMachine Assignment)
 set (CODEGEN_SRC codegen/Generator
         codegen/Definitions
         codegen/SequentialModule
         codegen/AssignmentModule
         codegen/GuardModule 
         codegen/ForModule
-        codegen/CodegenModule)
+        codegen/CodegenModule
+    )
 
 
 add_library(gravel ${GRAVEL_SRC} ${CODEGEN_SRC})

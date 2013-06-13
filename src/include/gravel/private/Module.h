@@ -10,9 +10,13 @@
 
 #include <string>
 
+#include <gravel/Module.h>
+
 namespace Gravel { 
 
-class ModuleImplementation { 
+
+    
+class ModuleImplementation : public Gravel::ModuleInterface { 
     
 private:
     std::string name;
@@ -21,7 +25,9 @@ protected:
     ModuleImplementation();
 public:
     ModuleImplementation(const std::string&);
-     const std::string getName();
+     const std::string getName() const;
+     bool operator<(const ModuleImplementation &) const;
+    // virtual std::ostream& emit(std::ostream& os) const;
 };
 
 

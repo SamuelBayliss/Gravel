@@ -22,27 +22,12 @@ protected:
     
 public:
     Symbol(const std::string&);
+  
      const std::string getName() const;
      Gravel::Interface::Symbol::Type getType() const;
-    
 };
 
-class Constant : public Gravel::Actor { 
-
-private : 
-    unsigned value;
-public:
-    
-    
 };
-
-    };
-    
-
-
-
-
-
 
 };
 

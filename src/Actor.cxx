@@ -1,10 +1,16 @@
 #include <gravel/private/Actor.h>
 
-void Gravel::GraphNode::connect(boost::weak_ptr<Gravel::GraphNode> na, boost::weak_ptr<Gravel::GraphNode> nb) {
+#include "gravel/Context.h"
+
+
+
+void Gravel::GraphNode::connect(Gravel::Pointer::GraphNode na, Gravel::Pointer::GraphNode nb) {
     
+
+    back.insert(BackMapPair(   Gravel::WeakPointer::GraphNode(na), Gravel::WeakPointer::GraphNode(nb)));
 }
 
-Gravel::GraphNode::GraphNode()  { 
+Gravel::GraphNode::GraphNode() :width(1)  { 
     
 }
 
@@ -12,22 +18,25 @@ Gravel::GraphNode::~GraphNode() {
     
 }
  
+unsigned Gravel::GraphNode::getWidth() {
+    return width;
+}
+
 Gravel::GraphNode::BackMap Gravel::GraphNode::back;
-Gravel::GraphNode::ParentMap Gravel::GraphNode::parent;
-       
- boost::weak_ptr<Gravel::GraphNode> Gravel::Actor::getOutput() const {
+
+Gravel::Pointer::GraphNode Gravel::Actor::getOutput() const {
      
      Gravel::GraphNode::NodeMap::const_iterator nit = nodes.find(Gravel::Output);
      if (nit == nodes.end()) {
          assert(false);
      }  else { 
-         return boost::weak_ptr<Gravel::GraphNode>(nit->second);
+         return (nit->second);
      }
    
      
 }
  
-Gravel::GraphNode::BackMapRange Gravel::GraphNode::getConnections(NodePtr np) { 
+Gravel::GraphNode::BackMapRange Gravel::GraphNode::getConnections(Gravel::Pointer::GraphNode np) { 
     return Gravel::GraphNode::back.equal_range(np);
 }
  
@@ -38,27 +47,53 @@ Gravel::GraphNode::ConstNodeRange Gravel::Actor::getInputs() const {
   
 }
 
-  void Gravel::Actor::setWidth(Gravel::GraphNode::NodePtr node, unsigned width) {
+  void Gravel::Actor::setWidth(Gravel::Pointer::GraphNode node, unsigned width) {
       
   }
   
-Gravel::Pointer::Actor Gravel::GraphNode::getParent(Gravel::GraphNode::NodePtr np) { 
+    Gravel::Actor::Actor() : initialized(false) {
+        
+    }
 
-std::map<Gravel::GraphNode::NodePtr, Gravel::Pointer::Actor>::iterator nit = parent.find(np);
 
-if(nit == parent.end()) {
- // throw exception
-} else {
-    return nit->second;
-}
- 
+Gravel::Pointer::Actor Gravel::GraphNode::getParent(Gravel::Pointer::GraphNode np) { 
 
+    assert(np.get() != NULL);
+    
+    Gravel::Context * ctx = Gravel::Context::getInstance();
+    return ctx->getParent(np);
 
 };
 
-void Gravel::GraphNode::setParents(Gravel::Pointer::Actor ptr) {
-       
-       Gravel::GraphNode::ConstNodeRange inputs = ptr->getInputs();
-       Gravel::GraphNode::NodePtr output = ptr->getOutput();
+Gravel::Pointer::Actor Gravel::GraphNode::getParent(Gravel::GraphNode::ConstNodeIterator it) { 
 
-   }
+    Gravel::Context * ctx = Gravel::Context::getInstance();
+    return ctx->getParent(it->second);
+
+};
+
+
+void Gravel::Actor::initialize(Gravel::Pointer::Actor actor) {
+    Gravel::Context * ctx = Gravel::Context::getInstance();
+    // store a weak pointer
+    ctx->insert(actor);
+    initialized = true;
+ /*   Gravel::GraphNode::ConstNodeIterator cit;
+    for (cit = nodes.begin() ; cit != nodes.end() ; cit++) {
+        Gravel::WeakPointer::GraphNode wn = cit->second;
+        Gravel::Pointer::GraphNode node = wn.lock();
+        
+    
+    }
+   */ 
+}
+
+
+Gravel::Pointer::GraphNode Gravel::GraphNode::Create(GraphNode::NodeMap & nodes, const Gravel::GraphEdgeDirection & direction) {
+    Gravel::Pointer::GraphNode node(new Gravel::GraphNode());
+    
+
+    nodes.insert(Gravel::GraphNode::NodePair(direction, node));
+    return node;  
+}
+

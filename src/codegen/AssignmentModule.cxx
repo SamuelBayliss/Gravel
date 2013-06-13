@@ -4,7 +4,7 @@
 Potholes::Generator::AssModule::AssModule(clast_stmt * stmt) : Potholes::Generator::Module(stmt) {
     
         // Calculate Output Range
-    
+     std::cout << "Ass";
 }
 
        void Potholes::Generator::AssModule::register_symbols() {

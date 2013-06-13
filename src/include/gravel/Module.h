@@ -8,63 +8,80 @@
 #ifndef MODULE_H
 #define	MODULE_H
 
-#include <gravel/Object.h>
 
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include <gravel/Object.h>
 #include <gravel/Symbol.h>
 
-#include "private/Symbol.h"
-#include "Context.h"
 
-#include <vector>
-#include <iterator>
+
 namespace Gravel {
 
+    namespace Implementation {
+        class Symbol;
+    };
     
 class ModuleImplementation;
     
 class ModuleInterface { 
    virtual const std::string getName() const = 0;
-   virtual std::ostream& emit(std::ostream& os) const = 0;
+//   virtual std::ostream& emit(std::ostream& os) const = 0;
 };
 
 
-typedef boost::shared_ptr<ModuleImplementation> ModulePtr;
+namespace Pointer { 
+
+typedef boost::shared_ptr<ModuleImplementation> Module;
+
+};
 
 class Module : public Gravel::ModuleInterface {
 
     typedef std::vector<Gravel::Implementation::Symbol> SymbolList;
 
 protected :  
-    Module();
-    ModulePtr module;
+   // Module();
+   Gravel::Pointer::Module module;  
 public : 
-  ;
-    
-    
+
     Module(const std::string& name);
+    Module(Gravel::Pointer::Module);
+  //  Module(const Module &);
     const std::string getName() const;
+
     std::ostream& emit(std::ostream& os) const;
    // SymbolList getSymbols(Gravel::Symbol::Direction);
     bool operator==(const Module & ) const;
     void operator>>(Gravel::Symbol& gs);
     void operator<<(Gravel::Symbol& gs);
     bool operator<(const Module &) const;
-    bool operator!=(const Module &) const;
+    bool operator!=(const Module &) const;  
+    //Gravel::Module & operator=(const Gravel::Module & rhs);
+    
 };
 
 
- class ModuleInstantiation { 
+
+class SynthesizableModule { 
     public:
-        typedef std::map<Gravel::Symbol, Gravel::Symbol> InputMap;
-        ModuleInstantiation(const std::string&, const Gravel::Module, const InputMap);
+        virtual void synthesize() = 0;
+};
+
+ class InstantiatedModule { 
+    public:
+        typedef std::map<Gravel::Symbol, Gravel::Symbol> SymbolMap;
+        InstantiatedModule(const std::string&, const Gravel::Module, const SymbolMap);
     private:
         const std::string name;
         const Gravel::Module module;
-        const InputMap inputs;
+        const SymbolMap connections;
     };
 
  
-    
+namespace Exception {  
 class ModuleNotFound : public std::exception { 
 public:
     ModuleNotFound(std::string = "");
@@ -72,6 +89,7 @@ public:
     ~ModuleNotFound() throw();
 private:
     std::string name;
+};
 };
 
 struct MixedSeparatorException : public std::exception {};
@@ -149,7 +167,7 @@ struct MixedSeparatorException : public std::exception {};
             static void emit(FormattedStream & fs, FormattedListObj<Sep, It> fv) {
              
 
-              Gravel::ConstSymbolMapIterator it;
+              Gravel::SymbolSet::iterator it;
               
               for (it = fv.be ; it != fv.en ; it++) {
                   
@@ -160,7 +178,7 @@ struct MixedSeparatorException : public std::exception {};
                
                   fs.empty = false;
  
-                  fs << it->second;
+                  fs << *it;
               }
               
               //  std::ostream_iterator<std::pair<Gravel::SymbolKey, Gravel::Symbol> > out_it (fs,fv.getSeparator().c_str());

@@ -8,29 +8,38 @@
 #ifndef EXPRESSION_H
 #define	EXPRESSION_H
 
-#include <gravel/Symbol.h>
 
 #include <boost/shared_ptr.hpp>
 
-#include "private/Actor.h"
+
+#include <gravel/private/Actor.h>
 
 
-
+#include <gravel/Assignment.h>
  
 
 namespace Gravel {
 
     class Expression;
     
-      typedef enum RelativeExpresionType {LessThan, MoreThan, Equals, LessThanEquals, MoreThanEquals};
+    namespace Implementation { 
+        class Symbol;
+    };
+    
+   namespace Pointer {
+        typedef boost::shared_ptr<Gravel::Implementation::Symbol> Symbol;
+    };
+    
+      typedef enum RelativeExpressionType {LessThan, MoreThan, Equals, LessThanEquals, MoreThanEquals};
       typedef enum UnaryExpressionType {Negate, Invert, Floor, Ceil};
       typedef enum BinaryExpressionType {Multiply, Add, Sub, XOR};
       typedef enum ReductionExpressionType {Min, Max};
       
     namespace Interface { 
         class Expression : public virtual  Gravel::Interface::Actor { 
+        public:
             virtual std::ostream& emit(std::ostream&) const = 0;
-
+            virtual const Gravel::Pointer::Symbol getSymbol() const = 0;     
         };
         
       /*  class TermExpression : public Gravel::Interface::Expression { 
@@ -81,11 +90,12 @@ namespace Gravel {
          class MuxExpression;
          class ReductionExpression;
          class RelativeExpression;
+  
     }
    
     namespace Pointer { 
         typedef boost::shared_ptr<Gravel::Actor> Actor; 
-        typedef boost::shared_ptr<Gravel::Interface::Expression> Expression; 
+        typedef boost::shared_ptr<Gravel::Implementation::Expression> Expression; 
     }
     
     class Expression : public Gravel::Interface::Actor { 
@@ -93,17 +103,27 @@ namespace Gravel {
         Expression(int); // promotion of int, creates constant
         bool operator==(const Gravel::Expression&) const;
         bool operator<(const Gravel::Expression &) const;
-        virtual GraphNode::NodePtr getOutput() const;
+        virtual Gravel::Pointer::GraphNode getOutput() const;
         virtual GraphNode::ConstNodeRange getInputs() const;
-        void setWidth(Gravel::GraphNode::NodePtr, unsigned);
+        void setWidth(Gravel::Pointer::GraphNode, unsigned);
         Expression(const Gravel::Pointer::Expression);
         std::ostream& emit(std::ostream&) const;
-        const Gravel::Symbol getSymbol();
+        const Gravel::Pointer::Symbol getSymbol() const;
         void setPipelineDepth(unsigned);
+        static bool Owned(const Gravel::Expression& e);
+        Gravel::Module getOwner() const;
+        void attach(const Gravel::Pointer::Module&) const;
+        ~Expression();
+        friend Gravel::Assignment Assignment::Create(const Gravel::Symbol&, const Gravel::Expression&, unsigned delay);
     private : 
         Gravel::Pointer::Expression ptr;
     };
        
+    class RelativeExpression : public Expression { 
+    public:
+             RelativeExpression(const Gravel::Pointer::Expression);
+    };
+    
   /*  class TermExpression : public Gravel::Expression, public Gravel::Interface::TermExpression {
     public: 
         TermExpression(const Gravel::Symbol);
@@ -150,6 +170,10 @@ namespace Gravel {
     
     
     std::ostream& operator<<(std::ostream& os, const Gravel::Expression& expression);
+    
+    Gravel::RelativeExpression operator==(const Gravel::Symbol&, const Gravel::Expression&);
+   // Gravel::RelativeExpression operator==(const Gravel::Symbol&, const Gravel::Constant&);
+    
     
     /* Symbols implicitly turned into TermExpressions or Constants implicitly turned into TermExpressions*/
     

@@ -11,17 +11,26 @@
 #include <gravel/Module.h>
 #include <gravel/private/Module.h>
 
+
 #include <cloog/cloog.h>
 
 namespace Potholes { 
+    
+
+    
     namespace Generator { 
+           
+        
         class Module : public Gravel::ModuleImplementation { 
         public:
             Module(clast_stmt *);
-            virtual void register_symbols() = 0;
-            virtual void build_chain() = 0;
+            virtual void register_symbols();
+            virtual void build_chain();
+        
         };
 
+        typedef boost::shared_ptr<Potholes::Generator::Module> CodegenModulePtr;
+        
     }
 
 };

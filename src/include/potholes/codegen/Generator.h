@@ -114,7 +114,7 @@ template <class T, class F>
         class Generator { 
         public:
             
-        typedef std::set < boost::shared_ptr<Potholes::Generator::Module> > ModuleSet;
+        typedef std::set <Gravel::Module> ModuleSet;
         typedef std::set<clast_stmt *> StatementSet;
         typedef std::multimap<clast_stmt *, clast_stmt *> EdgeSet;
         typedef std::set< std::set<clast_stmt *> >DisjointStatementSets;
@@ -124,16 +124,19 @@ template <class T, class F>
            Generator(std::string openscop = "");
      
            void generate(Target_t);
-           void emit(Target_t);
+           void emit(Target_t, std::ostream&);
            
-           void register_signals();
+           //void register_signals();
            void register_modules();
+           void register_symbols();
+           void build_chains();
            
             Potholes::Generator::interval calculate_output_range(clast_expr *);
             Potholes::Generator::interval find_output_range_for_iterator(std::string);
         private:
            std::string input_file;
-           boost::shared_ptr<CloogInput> input;
+          // boost::shared_ptr<CloogInput> input;
+           CloogInput * input;
            boost::shared_ptr<CloogState> state;
            boost::shared_ptr<clast_stmt> root;
            boost::shared_ptr<CloogOptions> options;
@@ -143,6 +146,12 @@ template <class T, class F>
            void connect_edges(EdgeSet, ModuleSet&);
            void create_and_append_nodes(StatementSet, ModuleSet &) ;
            void create_and_append_nodes(EdgeSet, ModuleSet &);
+           
+           void gather_iterator_edges();
+           void register_iterator_edge_symbols();
+        
+           void gather_control_edges();
+           void insert_control_edge_symbols();
            
            
         };
