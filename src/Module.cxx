@@ -11,6 +11,8 @@
 #include <boost/static_assert.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/is_integral.hpp>
+
+#include "gravel/Annotation.h"
    /* 
     
     Module Definition
@@ -36,7 +38,7 @@ Gravel::Exception::ModuleNotFound::~ModuleNotFound()  throw() {
    */
 
   
-   Gravel::Module::Module(const std::string& name) : module(Pointer::Module(new ModuleImplementation(name))) { 
+   Gravel::Module::Module(const std::string& name) : module(Pointer::Module(new Gravel::Implementation::Module(name))) { 
     
       
        
@@ -111,33 +113,51 @@ Gravel::Exception::ModuleNotFound::~ModuleNotFound()  throw() {
        Gravel::Context * ctx = Gravel::Context::getInstance();
 
        
-       Gravel::SymbolSet si = ctx->getSymbols(module, Gravel::Symbol::Input);
-       Gravel::SymbolSet so = ctx->getSymbols(module, Gravel::Symbol::Output);
+       Gravel::Collection::Symbol si = ctx->getSymbols(module, Gravel::Symbol::Input);
+       Gravel::Collection::Symbol so = ctx->getSymbols(module, Gravel::Symbol::Output);
       
   
+       Gravel::Collection::Symbol sl = ctx->getSymbols(module, Gravel::Symbol::Local);
+       
         os  << "(" << FormattedList<Comma>(si.begin(), si.end()) << FormattedList<Comma>(so.begin(), so.end()) << ");" << "\n";
       
-        Gravel::SymbolSet::iterator it;
+        Gravel::Collection::Symbol::iterator it;
         
         for (it = si.begin() ; it != si.end() ; it++) {
-            Gravel::SymbolDeclaration decl(*it);
+            Gravel::Symbol symbol(*it);
+            Gravel::SymbolDeclaration decl(symbol, Gravel::Symbol::Input);
             os << decl << "\n";
       
         }
         
         for (it = so.begin() ; it != so.end() ; it++) {
-            Gravel::SymbolDeclaration decl(*it);
+            Gravel::Symbol symbol(*it);
+            Gravel::SymbolDeclaration decl(symbol, Gravel::Symbol::Output);
             os << decl << "\n";
         }
-        Gravel::AssignmentSet el = ctx->getAssignments(module);
+        
+        for (it = sl.begin() ; it != sl.end() ; it++) {
+            Gravel::Symbol symbol(*it);
+            Gravel::SymbolDeclaration decl(symbol, Gravel::Symbol::Local);
+            os << decl << "\n";
+        }
+        
+        
+        Gravel::Collection::EdgeAnnotation annotations = ctx->getEdgeAnnotations(module);
 
-        Gravel::AssignmentSet::iterator elit;
+        Gravel::Collection::EdgeAnnotation::iterator eanit;
+        for (eanit = annotations.begin() ; eanit != annotations.end() ; eanit++) {
+            Gravel::Pointer::EdgeAnnotation ea = *eanit;
+            ea->process(os);
+        }
+        
+       /* Gravel::AssignmentSet::iterator elit;
 
         for (elit = el.begin() ; elit != el.end() ; elit++) {
             Gravel::Assignment assignment = *elit;
             assignment.emit(os);
         }
-        
+        */
        os << "endmodule" << "\n";
        return os;
        
@@ -182,7 +202,7 @@ Gravel::Exception::ModuleNotFound::~ModuleNotFound()  throw() {
     
    }
    
-   bool Gravel::ModuleImplementation::operator<(const ModuleImplementation & rhs) const {
+   bool Gravel::Implementation::Module::operator<(const Gravel::Implementation::Module & rhs) const {
     if (getName() < rhs.getName()) { 
         return true;
     } 
@@ -221,17 +241,17 @@ Gravel::Exception::ModuleNotFound::~ModuleNotFound()  throw() {
    }
    
  
-   Gravel::ModuleImplementation::ModuleImplementation() { 
+   Gravel::Implementation::Module::Module() { 
      assert(false);  
    }
  
-   Gravel::ModuleImplementation::ModuleImplementation(const std::string& name_) : name(name_) { 
+   Gravel::Implementation::Module::Module(const std::string& name_) : name(name_) { 
        
     
        
    }
    
-     const std::string Gravel::ModuleImplementation::getName() const { 
+     const std::string Gravel::Implementation::Module::getName() const { 
        return name;
    }
    

@@ -16,7 +16,7 @@ namespace Gravel {
    class Symbol : public Gravel::Actor {         
 private:
     std::string name;
-    
+    Interface::Symbol::Direction direction;
 protected:
     Symbol();
     
@@ -24,7 +24,16 @@ public:
     Symbol(const std::string&);
   
      const std::string getName() const;
-     Gravel::Interface::Symbol::Type getType() const;
+     virtual Gravel::Interface::Symbol::Type getType() const;
+     const Interface::Symbol::Direction getDirection() const;
+     void setDirection(const Interface::Symbol::Direction& );
+     std::ostream& emit(std::ostream&);
+};
+
+class RegisteredSymbol : public Gravel::Implementation::Symbol { 
+public : 
+    RegisteredSymbol(const std::string&);
+    Gravel::Interface::Symbol::Type getType() const;
 };
 
 };

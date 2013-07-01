@@ -3,8 +3,9 @@
 
 #include <gravel/Gravel.h>
 
+#include <gravel/test/GenerateFixture.h>
 
-BOOST_AUTO_TEST_SUITE ( StateMachineTest ) 
+BOOST_FIXTURE_TEST_SUITE ( StateMachineTest , GenerateFixture )
 
 BOOST_AUTO_TEST_CASE( state_machine_constructor_test)
 {
@@ -54,12 +55,12 @@ BOOST_AUTO_TEST_CASE( state_machine_constructor_test)
 }
 */
 
-BOOST_AUTO_TEST_CASE( sequential_assignment ) {
+BOOST_AUTO_TEST_CASE( assignment ) {
        Gravel::Context * ctx = Gravel::Context::getInstance();
     
     BOOST_CHECK ( ctx != NULL);
     
-    Gravel::Module top("top");
+    Gravel::Module top("assignment_top");
     
     Gravel::Symbol x("x"); 
     top << x;
@@ -69,10 +70,32 @@ BOOST_AUTO_TEST_CASE( sequential_assignment ) {
     top >> z;
       
     
-    z = Gravel::Expression(x);
+   Gravel::Assign(z << x);
     
     //Gravel::Delay(z = Gravel::Expression(x) , 2);
     //Gravel::Reset( z , 2);
+    
+    ctx->emit(std::cout);
+    
+}
+
+BOOST_AUTO_TEST_CASE( sequential_assignment ) {
+       Gravel::Context * ctx = Gravel::Context::getInstance();
+       ww
+    BOOST_CHECK ( ctx != NULL);
+    
+    Gravel::Module top("sequential_top");
+    
+    Gravel::Symbol x("x"); 
+    top << x;
+    Gravel::Symbol y("y");
+    top << y;
+    Gravel::Symbol z("z");
+    top >> z;
+      
+    
+    Gravel::Delay( z << x );
+   // Gravel::Reset( z , 2 );
     
     ctx->emit(std::cout);
     

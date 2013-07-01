@@ -11,95 +11,22 @@
 #include <map>
 #include <set>
 #include <boost/weak_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
+#include <boost/shared_ptr.hpp>
 
+#include <gravel/private/Definitions.h>
 
+#include <gravel/private/Actor.h>
+
+#include "GraphNode.h"
 
 namespace Gravel { 
     /* Actors can be Symbols or Expressions */
     /* Symbols with only an output are constants */
     /* Symbols with input and output can be registered */
-    typedef enum GraphEdgeDirection {Input, Output};
-    
-    class Actor;
-    class Symbol;
-    class Module;
-    class GraphNode;
-    class ModuleImplementation;
-    
-    
-    namespace Interface{
-        class Actor;
-    };
-   
-    namespace Pointer{
-        typedef boost::shared_ptr<Gravel::Actor> Actor; 
-        typedef boost::shared_ptr<Gravel::GraphNode> GraphNode;
-        typedef boost::shared_ptr<Gravel::ModuleImplementation> Module;
-       
-    };
-    namespace WeakPointer { 
-        typedef boost::weak_ptr<Gravel::GraphNode> GraphNode;
-    }
-    
 
-    
-    class GraphNode { 
-   
-    public :     
-        
-          typedef std::multimap<GraphEdgeDirection, Gravel::Pointer::GraphNode > NodeMap;
-          typedef std::pair<GraphEdgeDirection, Gravel::Pointer::GraphNode > NodePair;
-          typedef NodeMap::const_iterator ConstNodeIterator;
-           typedef NodeMap::iterator NodeIterator;
-       
-          typedef std::pair<NodeIterator, NodeIterator> NodeRange;
-          typedef std::pair<ConstNodeIterator, ConstNodeIterator> ConstNodeRange;
-          
-          
-          
-          typedef std::map<Gravel::WeakPointer::GraphNode, Gravel::WeakPointer::GraphNode> BackMap;
-           typedef std::pair<Gravel::WeakPointer::GraphNode, Gravel::WeakPointer::GraphNode> BackMapPair;
-          typedef BackMap::iterator BackMapIterator;
-          typedef std::pair<BackMapIterator, BackMapIterator> BackMapRange;
-         
-          typedef std::map<Gravel::WeakPointer::GraphNode, Gravel::Pointer::Actor> ParentMap;
-        
-        // Destructor
-        ~GraphNode();
-        
-        // points to implementation (which is an actor)
 
-        static Gravel::Pointer::Actor getParent(Gravel::Pointer::GraphNode);
-        static Gravel::Pointer::Actor getParent(Gravel::GraphNode::ConstNodeIterator);
-         
-     
-         
-         static BackMapRange getConnections(Gravel::Pointer::GraphNode);
-         
-        // Graph Node destructor removes back-link and removes from ring
-        static void connect(Gravel::Pointer::GraphNode, Gravel::Pointer::GraphNode);
-        unsigned getWidth();
-        // Default Constructor
-        static Gravel::Pointer::GraphNode Create(Gravel::GraphNode::NodeMap&, const Gravel::GraphEdgeDirection&);
-         private: 
-                 GraphNode();
-        unsigned width;
-        
-        static BackMap back;
-        
-       
-        
-        
-        // Copy Constructor is declared but not implemented
-        
-        // Equality Assignment is declared but not implemented
-    };
-    
-     namespace Collection { 
-        typedef std::pair<Gravel::GraphNode::ConstNodeIterator, Gravel::GraphNode::ConstNodeIterator> GraphNodeRange;
-        typedef std::set<Gravel::Pointer::Actor> Actor;
-    }
+  
+ 
     
     
      namespace Exception { 
@@ -114,7 +41,7 @@ namespace Gravel {
        public:
       //  std::set<Gravel::GraphNode> getInputs();
        virtual Gravel::Pointer::GraphNode getOutput() const = 0;
-       virtual GraphNode::ConstNodeRange getInputs() const = 0;
+       virtual Gravel::Collection::GraphNode getInputs() const = 0;
 
       // set width
        virtual void setWidth(Gravel::Pointer::GraphNode, unsigned) = 0;
@@ -132,7 +59,7 @@ namespace Gravel {
         public:
               Actor();
               /* Graph Connectivity */
-              GraphNode::ConstNodeRange getInputs() const;
+              Gravel::Collection::GraphNode getInputs() const;
               Gravel::Pointer::GraphNode getOutput() const;
               /* Width Selection */
               void setWidth(Gravel::Pointer::GraphNode, unsigned);

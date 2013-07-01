@@ -43,6 +43,7 @@ namespace Gravel {
         class Assignment { 
                   virtual void emit(std::ostream& os) = 0;
                   virtual Gravel::Collection::Symbol get_assigned_symbols() const = 0;
+                  
         };
     };
     
@@ -67,6 +68,7 @@ namespace Gravel {
         bool operator<(const Gravel::Assignment&) const;
         virtual void emit(std::ostream& os);
          Gravel::Collection::Symbol get_assigned_symbols() const;
+         void set_delay(unsigned);
         Assignment(Gravel::Pointer::Assignment);
         
     };
@@ -81,6 +83,7 @@ namespace Gravel {
         public:
           virtual void emit(std::ostream& os);
           Gravel::Collection::Symbol get_assigned_symbols() const;
+          void set_delay(unsigned);
           void propagate();
           Assignment(Gravel::Pointer::Symbol&, Gravel::Pointer::Expression&, unsigned delay);
         };

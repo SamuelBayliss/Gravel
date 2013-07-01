@@ -1,13 +1,13 @@
 
 
-set (GRAVEL_SRC Context Module Object Symbol Expression Actor StateMachine Assignment)
+set (GRAVEL_SRC Context Module Object Symbol Expression Actor StateMachine Assignment Annotation)
 set (CODEGEN_SRC codegen/Generator
-        codegen/Definitions
-        codegen/SequentialModule
-        codegen/AssignmentModule
-        codegen/GuardModule 
-        codegen/ForModule
-        codegen/CodegenModule
+#        codegen/Definitions
+#        codegen/SequentialModule
+#        codegen/AssignmentModule
+#        codegen/GuardModule 
+#        codegen/ForModule
+#        codegen/CodegenModule
     )
 
 

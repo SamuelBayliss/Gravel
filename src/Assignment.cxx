@@ -2,6 +2,7 @@
 #include <gravel/Assignment.h>
 
 #include <gravel/Symbol.h>
+#include <gravel/private/Symbol.h>
 
 #include <gravel/Expression.h>
 #include <gravel/private/Expression.h>
@@ -12,6 +13,9 @@
 #include <boost/function.hpp>
 #include <algorithm>
 #include <iterator>
+
+
+#include <gravel/private/Actor.h>
 
 #include <gravel/AssignmentFunctions.h>
 
@@ -57,7 +61,7 @@
                     os << "always @" << "(" << "posedge clk" << ") " << "begin" << "\n";
                     os << registered_symbol << " <= " << Gravel::Symbol(amit->second->getSymbol()) << ";" <<"\n";
                     os << "end " << "\n";
-                    os << "assign " << amit->first << " = " << registered_symbol << ";" << "\n";
+                    os << "assign " << Gravel::Symbol(amit->first) << " = " << registered_symbol << ";" << "\n";
                 } else { 
                     
                     os << "always @" << "(" << "posedge clk or posedge reset" << ") " << "begin" << "\n";
@@ -74,13 +78,55 @@
         
         }
            
-             void Gravel::Reset( Gravel::Symbol symbol, Gravel::Expression expression) {
+    void Gravel::Assignment::set_delay(unsigned _delay ) {
+        assignment->set_delay(_delay);
+        
+    }
+    
+    void Gravel::Implementation::Assignment::set_delay(unsigned _delay ) {
+         delay = _delay;
+    }
+    
+           Gravel::Pointer::EdgeAnnotation Gravel::Reset( Gravel::Symbol symbol, Gravel::Expression expression) {
+           
+               Gravel::Edge edge(symbol.getInput(), expression.getOutput());
                
+               /* Sets reset value of a symbol */
+            //    std::cerr << "Setting Reset Value Annotation" <<"\n";
+               // looks for assignment of a symbol in context 
+               // if not found, it creates and assignment
+               // else and sets the reset value of that symbol
+               
+                Gravel::Pointer::EdgeAnnotation rst = Gravel::Annotation::Reset::Create(edge);
+                return rst;
            }
-           void Gravel::Delay( Gravel::Assignment assignment, Gravel::Expression expression) {
-              
+           Gravel::Pointer::EdgeAnnotation Gravel::Delay( Gravel::Edge edge) {
+              /* Sets delay value of an assignment (in clocks) */
+               
+               // expression has to be a constant
+               
+               Gravel::Pointer::EdgeAnnotation ca = Gravel::Annotation::ClockedAssignment::Create(edge);
+               
+               // may create a new symbol
+               Gravel::Context * ctx = Gravel::Context::getInstance();
+               ctx->propagate();
+               
+               return ca;
            }
  
+           
+           
+           
+           Gravel::Pointer::EdgeAnnotation Gravel::Assign(Gravel::Edge edge) {
+               
+                 // std::cerr << "Creating Continuous Assignment Annotation" <<"\n";
+                  Gravel::Pointer::EdgeAnnotation ca = Gravel::Annotation::ContinuousAssignment::Create(edge);
+               
+                  Gravel::Context * ctx = Gravel::Context::getInstance();
+                  ctx->propagate();
+                  return ca;
+           }    
+           
            
 class register_module : public std::binary_function<Gravel::Pointer::Module, Gravel::Pointer::Actor, void> {
 public: 
@@ -116,7 +162,7 @@ public:
                void Gravel::Implementation::Assignment::propagate() {
                   // std::cerr << "Calling Propagator" << "\n";
                    Gravel::Collection::Actor actors;
-                   
+                   Gravel::Context * ctx = Gravel::Context::getInstance();
                      std::transform(normal.begin(), normal.end(),
                         std::inserter(actors, actors.begin()),
                         boost::bind(&std::map<Gravel::Pointer::Symbol, Gravel::Pointer::Expression>::value_type::first, _1));
@@ -133,7 +179,21 @@ public:
                         std::inserter(actors, actors.begin()),
                         boost::bind(&std::map<Gravel::Pointer::Symbol, Gravel::Pointer::Expression>::value_type::second, _1));
                        
-                   //  std::cerr << "There are " << actors.size() << "\n";
+                    // std::cout << "Calling Propagate" << "\n";
+                     if (delay > 0) {
+                         
+                         Gravel::Assignment::AssignmentMap::iterator ait;
+                         // add all the 'reg' nodes associated with 'normal' assignments
+                         for (ait = normal.begin() ; ait != normal.end() ; ait++ ) {
+                             Gravel::Pointer::Symbol symbol = ctx->getRegisteredSymbol(ait->first);
+                             actors.insert(symbol);
+                             std::cout << "Added " << symbol->getName() << "\n";
+                         }
+                         
+                         
+                     }
+                     
+                   // std::cerr << "There are " << actors.size() << "\n";
                    // Make a list of Actor Pointers from all the expressions and symbols
               
                    Gravel::Collection::Actor registered_actors;
@@ -149,9 +209,37 @@ public:
                   //std::cerr << "There is " << modules.size() << " registered modules" << "\n";
                   Gravel::Pointer::Module module = *(modules.begin());
                   
-                   boost::function<void (Gravel::Pointer::Actor) > register_function = boost::bind(register_module(), module, _1);
+                  boost::function<void (Gravel::Pointer::Actor) > register_function = boost::bind(register_module(), module, _1);
                   
                   std::for_each(actors.begin(), actors.end(), register_function );
+                   if (delay > 0) {
+                         
+                         Gravel::Assignment::AssignmentMap::iterator ait;
+                         // add all the 'reg' nodes associated with 'normal' assignments
+                         for (ait = normal.begin() ; ait != normal.end() ; ait++ ) {
+                             Gravel::Pointer::Symbol symbol = ctx->getRegisteredSymbol(ait->first);
+                          // Registered Symbols are always local
+                             ctx->insert(symbol, module);
+
+                        
+                             if (! ctx->exists(module, "clk")) {
+                                Gravel::Pointer::Symbol clk = Gravel::Symbol::Create("clk");
+                                
+                                Gravel::Symbol cs(clk); 
+                                Gravel::Module(module) << cs;
+                           
+                             }
+                             
+                             if (! ctx->exists(module, "reset")) {
+                                Gravel::Pointer::Symbol reset = Gravel::Symbol::Create("reset");
+                                Gravel::Symbol rs(reset); 
+                                Gravel::Module(module) <<  rs;      
+                             }
+                           
+                         }
+                         
+                         
+                     }
                   
               
                 

@@ -10,10 +10,12 @@
 
 #include <gravel/Symbol.h>
 #include <gravel/Expression.h>
-#include <gravel/Assignment.h>
+#include <gravel/Annotation.h>
+
 namespace Gravel {
-  void Reset( Gravel::Symbol, Gravel::Expression);
-  void Delay( Gravel::Assignment, Gravel::Expression);
+  Gravel::Pointer::EdgeAnnotation Reset( Gravel::Symbol, Gravel::Expression);
+ Gravel::Pointer::EdgeAnnotation Delay( Gravel::Edge);
+ Gravel::Pointer::EdgeAnnotation Assign (Gravel::Edge );
 };
 #endif	/* ASSIGNMENTFUNCTIONS_H */
 

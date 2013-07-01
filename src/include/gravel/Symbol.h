@@ -55,9 +55,13 @@ namespace Gravel {
             typedef enum Type {Wire, Reg};
             
             virtual const std::string getName() const = 0;
+            // This function allows you to get the direction of a symbol
             virtual Type getType() const = 0;
+            // These functions allow you to get the direction of a symbol
+            virtual const Gravel::Interface::Symbol::Direction getDirection() const = 0;
+       
         protected:
-            
+    
         };
         
     
@@ -76,7 +80,7 @@ namespace Implementation {
   public:
       Constant(int);
          Gravel::Pointer::GraphNode getOutput() const;
-         GraphNode::ConstNodeRange getInputs() const;
+         Gravel::Collection::GraphNode getInputs() const;
       // set width
          void setWidth(Gravel::Pointer::GraphNode, unsigned);
   protected:
@@ -94,6 +98,7 @@ namespace Implementation {
     class Symbol : public Interface::Symbol, public Interface::ActorHandle { 
     private : 
         Gravel::Pointer::Symbol symbol;
+        void setDirection(const Direction& );
     protected : 
         Symbol();
         
@@ -104,8 +109,9 @@ namespace Implementation {
         Symbol(Gravel::Pointer::Symbol);
         ~Symbol();
        const std::string getName() const;
-         Interface::Symbol::Type getType() const;
-           static boost::shared_ptr<Gravel::Symbol> Create(const std::string&);
+          Interface::Symbol::Type getType() const;
+       
+          static Gravel::Pointer::Symbol Create(const std::string&);
            
        static unsigned getSymbolWidth(const Gravel::Symbol&);
        
@@ -114,41 +120,50 @@ namespace Implementation {
        //static void Attach(const Gravel::Symbol&, const Gravel::Module&, const Gravel::Interface::Symbol::Direction&); 
    
        void attach(const Gravel::Pointer::Module&) const;
-       void attach(Gravel::Pointer::Module&, const Gravel::Interface::Symbol::Direction&) const ;
+       void attach(Gravel::Pointer::Module&, const Gravel::Interface::Symbol::Direction&)  ;
        Gravel::Module getOwner() const;
+       const Interface::Symbol::Direction getDirection() const;
        
        bool operator==(const Gravel::Symbol&) const;
         operator const Gravel::Expression() const;
   
          Gravel::Pointer::GraphNode getOutput() const;
-        GraphNode::ConstNodeRange getInputs() const;
-        void setWidth(Gravel::Pointer::GraphNode, unsigned);
+         Gravel::Pointer::GraphNode getInput() const; // Throws Exception if there is no input, or there is > 1
+        Gravel::Collection::GraphNode getInputs() const;
         
+        void setWidth(Gravel::Pointer::GraphNode, unsigned);
+                  
+       
        Gravel::Assignment operator=(const Gravel::Expression&);
        bool operator<(const Gravel::Symbol&) const;
-       
+       Gravel::Edge operator<<(const Gravel::Symbol&) const;
        friend Gravel::Assignment Assignment::Create(const Gravel::Symbol&, const Gravel::Expression&, unsigned delay);
     };
  
    class RegisteredSymbol : public Gravel::Symbol {
- 
+   public:
+        static Gravel::Pointer::Symbol Create(const std::string&);
+        
+        RegisteredSymbol(Gravel::Pointer::Symbol);
     };
 
     
     class TemporarySymbol : public Gravel::Symbol { 
     public:
+        static Gravel::Pointer::Symbol Create();
         TemporarySymbol();
     };
     
     class SymbolDeclaration {
     public:
-        SymbolDeclaration(const Gravel::Symbol&);
+        SymbolDeclaration(const Gravel::Symbol&m, Gravel::Symbol::Direction direction);
              //   SymbolInterface::Type getType() const ;
         //const std::string getName() const;
         const Gravel::Symbol getSymbol() const;
+        const Gravel::Symbol::Direction getDirection() const;
     private:
         Gravel::Symbol symbol;
-        
+        Gravel::Symbol::Direction direction;
     };
     
     typedef std::pair<Gravel::Pointer::Module, Gravel::Pointer::Symbol> SymbolKey;

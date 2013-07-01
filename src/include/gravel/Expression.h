@@ -104,7 +104,7 @@ namespace Gravel {
         bool operator==(const Gravel::Expression&) const;
         bool operator<(const Gravel::Expression &) const;
         virtual Gravel::Pointer::GraphNode getOutput() const;
-        virtual GraphNode::ConstNodeRange getInputs() const;
+        virtual Gravel::Collection::GraphNode getInputs() const;
         void setWidth(Gravel::Pointer::GraphNode, unsigned);
         Expression(const Gravel::Pointer::Expression);
         std::ostream& emit(std::ostream&) const;

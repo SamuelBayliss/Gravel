@@ -1,8 +1,11 @@
 
-#include <gravel/Expression.h>
-#include <gravel/private/Expression.h>
-#include <gravel/private/Node.h>
+#include <gravel/private/Definitions.h>
 
+
+#include <gravel/private/Expression.h>
+#include <gravel/private/GraphNode.h>
+
+#include <gravel/Expression.h>
 #include "gravel/Context.h"
 
 #include <boost/weak_ptr.hpp>
@@ -33,7 +36,7 @@ Gravel::Module Gravel::Expression::getOwner() const {
        
         Gravel::GraphNode::BackMapRange br = Gravel::GraphNode::getConnections(cr);
         
-        Gravel::GraphNode::BackMapIterator bit;
+        Gravel::GraphNode::EdgeMapIterator bit;
         for (bit = br.first ; bit != br.second ; bit++ ) {
             
             Gravel::WeakPointer::GraphNode wgn = bit->second;
@@ -129,16 +132,16 @@ const Gravel::Pointer::Symbol Gravel::Implementation::TermExpression::getSymbol(
     
    //Gravel::Context * ctx =  Gravel::Context::getInstance();
     
-    Gravel::GraphNode::ConstNodeRange cr = this->getInputs();
+    Gravel::Collection::GraphNode cr = this->getInputs();
   
-    Gravel::GraphNode::ConstNodeIterator nit;
-    for (nit = cr.first ; nit != cr.second ; nit++) {
+    Gravel::Collection::GraphNode::iterator nit;
+    for (nit = cr.begin() ; nit != cr.end() ; nit++) {
         
        // if input actor is a constant, return the symbol attached to output actor
     
-        Gravel::GraphNode::BackMapRange br = Gravel::GraphNode::getConnections(nit->second);
+        Gravel::GraphNode::BackMapRange br = Gravel::GraphNode::getConnections(*nit);
         
-        Gravel::GraphNode::BackMapIterator bit;
+        Gravel::GraphNode::EdgeMapIterator bit;
      
         for (bit = br.first ; bit != br.second ; bit++ ) {
             
@@ -209,9 +212,10 @@ lhs(lhs), rhs(rhs), binop(binop) {
     
     Gravel::Expression temp = Gravel::TemporarySymbol() ;
     
-    GraphNode::ConstNodeRange nr = temp.getInputs();
-    for (GraphNode::ConstNodeIterator ni = nr.first ; ni != nr.second ; ni++) {
-        GraphNode::connect(onode, Gravel::Pointer::GraphNode(ni->second));
+    Gravel::Collection::GraphNode inputs = temp.getInputs();
+    for (Gravel::Collection::GraphNode::iterator ni = inputs.begin() ; ni != inputs.end() ; ni++) {
+        Gravel::Pointer::GraphNode inode = *ni;
+        GraphNode::connect(onode, inode);
     }
     ctx->propagate();
     // normalize expression and symbol ownership
@@ -258,7 +262,7 @@ void Gravel::Expression::setWidth(Gravel::Pointer::GraphNode node, unsigned widt
      return ptr->setWidth(node, width); 
 }
 
- Gravel::GraphNode::ConstNodeRange Gravel::Expression::getInputs() const {
+ Gravel::Collection::GraphNode Gravel::Expression::getInputs() const {
       return ptr->getInputs();
  }
 
@@ -397,12 +401,12 @@ Gravel::Expression Gravel::operator+(const Gravel::Expression& lhs, const Gravel
 
       Gravel::Pointer::GraphNode onode = this->getOutput();
       
-      Gravel::Collection::GraphNodeRange inodes = this->getInputs();
+      Gravel::Collection::GraphNode inodes = this->getInputs();
       
       Gravel::Symbol output = GraphNode::getParent(onode);
       
-      Gravel::Symbol lhs = GraphNode::getParent(inodes.first);
-      Gravel::Symbol rhs = GraphNode::getParent(inodes.second);
+      Gravel::Symbol lhs = GraphNode::getParent(*(inodes.begin()));
+      Gravel::Symbol rhs = GraphNode::getParent(*(inodes.end()));
       
         os << "assign" << " " << output << "=" << lhs << " ";
         

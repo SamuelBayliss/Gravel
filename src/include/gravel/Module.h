@@ -34,7 +34,7 @@ class ModuleInterface {
 
 namespace Pointer { 
 
-typedef boost::shared_ptr<ModuleImplementation> Module;
+typedef boost::shared_ptr<Gravel::Implementation::Module> Module;
 
 };
 
@@ -167,7 +167,7 @@ struct MixedSeparatorException : public std::exception {};
             static void emit(FormattedStream & fs, FormattedListObj<Sep, It> fv) {
              
 
-              Gravel::SymbolSet::iterator it;
+             It it;
               
               for (it = fv.be ; it != fv.en ; it++) {
                   
@@ -177,8 +177,9 @@ struct MixedSeparatorException : public std::exception {};
                   
                
                   fs.empty = false;
- 
-                  fs << *it;
+                 // Gravel::Symbol symbol = Symbol(*it);
+                  (*it)->emit(fs);
+                 // fs << symbol;
               }
               
               //  std::ostream_iterator<std::pair<Gravel::SymbolKey, Gravel::Symbol> > out_it (fs,fv.getSeparator().c_str());

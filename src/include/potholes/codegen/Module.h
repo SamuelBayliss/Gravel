@@ -21,7 +21,7 @@ namespace Potholes {
     namespace Generator { 
            
         
-        class Module : public Gravel::ModuleImplementation { 
+        class Module : public Gravel::Implementation::Module { 
         public:
             Module(clast_stmt *);
             virtual void register_symbols();

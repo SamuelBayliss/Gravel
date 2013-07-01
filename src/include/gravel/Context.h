@@ -39,11 +39,16 @@ namespace Gravel {
         
     };
     
-    
+    namespace Pointer { 
+      typedef boost::shared_ptr<Gravel::Edge> Edge;
+    };
+    namespace Collection { 
+      typedef std::set<Gravel::Pointer::Edge> Edge;
+    };
     
 typedef std::map<Gravel::InstantiatedModule, Gravel::Module> ModuleInstantiationMap;
 typedef std::set<Gravel::Pointer::Module> ModuleSet;
-typedef std::map<Gravel::Symbol, Gravel::Symbol> RegisteredSymbolMap;
+typedef std::map<Gravel::Pointer::Symbol, Gravel::Pointer::Symbol> RegisteredSymbolMap;
 typedef std::set<Gravel::Symbol> SymbolSet;
 
 typedef std::set<Gravel::Pointer::Actor> ActorSet;
@@ -83,9 +88,9 @@ class Context {
         ModuleSet ml;
         
         /* Should map Symbol:Module pairs to direction */
-        SymbolMap  sm;
+       // SymbolMap  sm;
         
-        ActorSet as; // list of all actors
+        ActorSet as; // list of all unmapped actors
         ActorMap am; // map of actors to modules
         
         AssignmentSet al;
@@ -97,7 +102,8 @@ class Context {
         unsigned tempIdentifier;
         
         unsigned add_edges(const Gravel::Pointer::Module& );
-        
+             // void print_actor_module_table(std::ostream& os);
+             // void printSymbols(std::ostream&); // does a dump of all symbols
    protected :
 	Context(); 
         
@@ -106,19 +112,24 @@ class Context {
         
         /* These are bad... remove them */
         
-        static Gravel::Module getPointer(Gravel::ModuleImplementation *);
-        static Gravel::Module getPointer(const Gravel::ModuleImplementation *);
+        //static Gravel::Module getPointer(Gravel::ModuleImplementation *);
+        //static Gravel::Module getPointer(const Gravel::ModuleImplementation *);
         
         void reset(); // should clear all context without memory leaks
+      
+        Gravel::Collection::EdgeAnnotation getEdgeAnnotations(Gravel::Edge) const;
+        Gravel::Collection::EdgeAnnotation getEdgeAnnotations(Gravel::Pointer::Module) const;
         
-        void printSymbols(std::ostream&); // does a dump of all symbols
+        Gravel::Collection::Actor getActors(Gravel::Pointer::Module module) const;
         
-        SymbolSet getSymbols(const Gravel::Pointer::Module&) const ;
-        SymbolSet getSymbols(Gravel::Pointer::Module module, Symbol::Direction direction) const;
+        Gravel::Collection::Symbol getSymbols(const Gravel::Pointer::Module&) const ;
+        Gravel::Collection::Symbol getSymbols(Gravel::Pointer::Module module, Symbol::Direction direction) const;
     
-        Gravel::SymbolVector getDelayedSymbols(const Gravel::Symbol&);
-        Gravel::Symbol getRegisteredSymbol(const Gravel::Symbol&);
+    
         
+        Gravel::SymbolVector getDelayedSymbols(const Gravel::Symbol&);
+
+        Gravel::Pointer::Symbol getRegisteredSymbol(const Gravel::Pointer::Symbol& symbol );
         //ConstExpressionList getExpressions(const Gravel::Module&) const ;
         
         AssignmentSet getAssignments(const Gravel::Module&) const;
@@ -135,31 +146,34 @@ class Context {
         // Registers a 'reg' symbol
         // void insert(const Gravel::Symbol, Gravel::RegisteredSymbol); 
         // Registers a sequence of 'wire' nodes associated with an assignment (with delay > 1)
-        void insert(const Gravel::Pointer::Symbol, Gravel::SymbolVector); 
+        //void insert(const Gravel::Pointer::Symbol, Gravel::SymbolVector); 
         // Registers a module
         void insert(const Gravel::Pointer::Module&);
         bool exists(const Gravel::Pointer::Module&);
          // Registers a symbol with associated module and direction
-        void insert(Gravel::Pointer::Module&, Gravel::Pointer::Symbol, const Gravel::Interface::Symbol::Direction&);
-        bool exists(const Gravel::Pointer::Module&, const Gravel::Pointer::Symbol, const Gravel::Interface::Symbol::Direction&);
-        
+        //void insert(Gravel::Pointer::Module&, Gravel::Pointer::Symbol, const Gravel::Interface::Symbol::Direction&);
+       // bool exists(const Gravel::Pointer::Module&, const Gravel::Pointer::Symbol, const Gravel::Interface::Symbol::Direction&);
+        bool exists(const Gravel::Pointer::Module&, const std::string& );
         /* Inserts an actor into the actor set*/
         void insert(Gravel::Pointer::Actor actor);
+        void insert(Gravel::Pointer::Actor actor, Gravel::Pointer::Module);
+        void insert(const Gravel::Pointer::Assignment&);
          /* Probably Obsolete*/
         //void insert(Gravel::Pointer::Actor actor, Gravel::Pointer::GraphNode);
         /* Adds a actor into the actor map*/
-        void insert(Gravel::Pointer::Actor actor, Gravel::Pointer::Module);
-        
-        void insert(const Gravel::Pointer::Assignment&);
+
         Gravel::Pointer::Module owner(const Gravel::Pointer::Actor& actor);
-       // Gravel::Module owner(const Gravel::Pointer::Actor& actor);
         bool isOwned(const Gravel::Pointer::Actor& actor);
+       // Gravel::Module owner(const Gravel::Pointer::Actor& actor);
+  
         
-        void propagate();
-        
+
         Gravel::Module getModule(const std::string&) const;
+        
         void emit(std::ostream& os);
+        
         bool elaborate();
+        void propagate();
         
 };
 

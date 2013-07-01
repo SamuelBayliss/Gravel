@@ -15,22 +15,23 @@
 namespace Gravel { 
 
 
-    
-class ModuleImplementation : public Gravel::ModuleInterface { 
+    namespace Implementation { 
+class Module : public Gravel::ModuleInterface { 
     
 private:
     std::string name;
     
 protected:
-    ModuleImplementation();
+    Module();
 public:
-    ModuleImplementation(const std::string&);
+    Module(const std::string&);
      const std::string getName() const;
-     bool operator<(const ModuleImplementation &) const;
+     bool operator<(const Gravel::Implementation::Module &) const;
     // virtual std::ostream& emit(std::ostream& os) const;
 };
 
-
+    };
+    
 };
 
 #endif	/* MODULEIMPLEMENTATION_H */
