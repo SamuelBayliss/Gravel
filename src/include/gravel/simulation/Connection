@@ -1,0 +1,47 @@
+
+// Makes up a different library with C linkage
+
+
+void register_functions() { 
+
+}
+
+
+int link_compiletf() { 
+
+}
+
+int link_calltf() { 
+
+}
+
+
+Dr Samuel Bayliss MEng ACGI PhD DIC 
+
+
+
+Plan is, build code which loads in preprocessed 'c' file and open-scop notation and promotes
+Polyhedral section to a function call (with appropriate parameters). 
+
+for (x0) {
+    for (x1) { 
+        S0
+        for (x2) {
+            S1
+        }
+    for (x3) {
+      S2
+      for (x4) {
+        S3
+      }
+    }
+    }
+}
+
+
+List all possible merge points
+
+Either point to a statement or a for loop or a bracketed sequence
+
+[0] -> [1] -> (S0 ; ( [2] -> S1 ) ; ( [x3] -> (S2 ; [4] -> S3) ) ) 
+
